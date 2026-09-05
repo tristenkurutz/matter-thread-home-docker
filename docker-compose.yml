@@ -1,0 +1,45 @@
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:stable
+    container_name: homeassistant
+    privileged: true
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - TZ=America/New_York
+    volumes:
+      - /home/tristen/homeassistant:/config
+      - /run/dbus:/run/dbus:ro
+
+  matter-server:
+    image: ghcr.io/home-assistant-libs/python-matter-server:stable
+    container_name: matter-server
+    restart: unless-stopped
+    network_mode: host
+    security_opt:
+      - apparmor=unconfined
+    volumes:
+      - /home/tristen/matter-server:/data
+      - /run/dbus:/run/dbus:ro
+    command:
+      - --storage-path
+      - /data
+      - --paa-root-cert-dir
+      - /data/credentials
+      - --primary-interface
+      - wlp3s0
+
+  otbr:
+    image: openthread/otbr:latest
+    container_name: otbr
+    privileged: true
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      - BACKBONE_INTERFACE=wlp3s0
+    volumes:
+      - /home/tristen/otbr:/data
+    devices:
+      # Mapped by-id so this survives the dongle refreshing as a
+      # different /dev/ttyUSBx after a reboot or USB replug.
+      - /dev/serial/by-id/usb-SONOFF_SONOFF_Dongle_Lite_MG21_76ca38eb39a2ef11b3288c6661ce3355-if00-port0:/dev/ttyUSB0
